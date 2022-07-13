@@ -1,74 +1,83 @@
-// Добавление computed property
-/* eslint-disable prefer-object-spread */
-/* eslint-disable no-param-reassign */
+// Винтажный JS — bind, call и apply своими руками
+// «напишите свою реализацию метода bind»
 
-/* В решения этой задачи используется метод Object.assign. В реальных проектах для такой задачи
- * лучше использовать spread опертор - это самый современный подход
- *
- * Так же плохой подход - мутировать входящие параметры функции
- *
- * Задачу мы делаем для практики и демонстрационных целей, поэтому чтобы eslint не ругался на эту ошибку,
- * для этой задачи он отключен аннотацией eslint-disable
- * */
-// // examples
-// const transaction = {
-//   value: 170,
+// 1 что вообще делают методы bind, call и apply?
+
+// const user = {
+//   fullName: 'Иван Человеков',
 // };
-// // input: object, key, value
-// // output: object
-function addPropertyV1(obj, key, value) {
-  obj[key] = value;
-  return obj;
-}
 
-// console.log(addPropertyV1(transaction, 'currency', 'USD')); // ==> { value: 170, currency: 'USD' }
-
-// // input: target obj, obj1, obj2, ... objN
-// // output: obj
-function addPropertyV2(obj, key, value) {
-  return Object.assign(obj, { [key]: value });
-}
-
-// // const transaction = {
-// //   value: 170,
-// // };
-
-// console.log(addPropertyV2(transaction, 'currency', 'USD')); // ==> { value: 170, currency: 'USD' }
-
-// // -------------------------------------------------------------------------------------------------------
-
-function addPropertyV3(obj, key, value) {
-  return Object.assign({}, obj, { [key]: value });
-}
-
-// // const transaction = {
-// //   value: 170,
-// // };
-
-// const res1 = addPropertyV4(transaction, 'currency', 'USD'); // ==> { value: 170, currency: 'USD' }
-// const res2 = addPropertyV4(res1, 'Kyiv', 300); // ==> { value: 170, Kyiv: 'city' }
-// console.log(res1);
-// console.log('result: ', res2);
-// console.log('given obj', transaction);
-// // -------------------------------------------------------------------------------------------------------
-
-// option 1 (bad)
-// function addPropertyV4(obj, key, value) {
-//   const newObj = { ...obj, [key]: value };
-//   return newObj;
+// function getName() {
+//   return this.fullName;
 // }
 
-// option 2 (good)
-function addPropertyV4(obj, key, value) {
-  return { ...obj, [key]: value };
-}
+// console.log(getName());
 
-const transaction = {
-  value: 170,
+// console.log(getName.bind(user)());
+// const result = getName.bind(user);
+// console.log(result());
+
+// const user = {
+//   fullName: 'Иван Человеков',
+// };
+
+// function getName() {
+//   return this.fullName;
+// }
+
+// // bind самостоятельно не вызывает функцию
+// console.log(getName.bind(user)()); // Иван Человеков
+
+// call & apply самостоятельно вызывают ф-ю
+const user = {
+  firstName: '',
+  lastName: '',
+  fullName() {
+    return `${this.firstName} ${this.lastName}`;
+  },
 };
 
-const res1 = addPropertyV4(transaction, 'currency', 'USD'); // ==> { value: 170, currency: 'USD' }
-const res2 = addPropertyV4(res1, 'Sparta', 300); // ==> { value: 170, Kyiv: 'city' }
-console.log('result test 1: ', res1);
-console.log('result test 2: ', res2);
-console.log('obj after: ', transaction);
+function getFullName(firstName, lastName) {
+  this.firstName = firstName;
+  this.lastName = lastName;
+  return this.fullName();
+}
+
+console.log(getFullName.bind(user, 'Иван', 'Человеков')());
+console.log(getFullName.bind(user, 'Иван')('Человеков'));
+console.log(getFullName.bind(user)('Иван', 'Человеков'));
+
+console.log(getFullName.call(user, 'Raptor', 'Pidor'));
+
+console.log(getFullName.apply(user, ['Pidor', '4444']));
+
+// написание собственной функции bind
+
+// input: function (контекст которой нужно поменять)
+// output: function (контекст которой заменён на полученный объект)
+
+function bind(fn, context) {
+  return function () {
+    // Формируем уникальную строку (used current time)
+    const uuid = Date.now().toString();
+    // создаём новое поле у объекта и кладём туда нашу функцию
+    context[uuid] = fn;
+    // помещаем вызов функции в новую переменную
+    const res = context[uuid]();
+    // возвращаем объекту контекста изначальное состояние
+    delete context[uuid];
+    // возвращаем переменную с функцией
+    return res;
+  };
+}
+
+// Теперь нужно разобраться с аргументами. Как помните, аргументы могут быть переданы как в саму функцию bind, так и в возвращаемую функцию. И нам нужно обработать оба варианта.
+function bind(fn, context, ...rest) {
+  return function (...args) {
+    const uuid = Date.now().toString();
+    context[uuid] = fn;
+    const res = context[uuid](...rest, ...args);
+    delete context[uuid];
+    return res;
+  };
+}
